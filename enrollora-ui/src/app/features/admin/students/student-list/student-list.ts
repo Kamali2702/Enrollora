@@ -1,10 +1,22 @@
-import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
+
+import {
+  Component,
+  inject,
+  OnInit,
+  ChangeDetectorRef,
+  ChangeDetectionStrategy,
+  signal,
+} from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { StudentService } from '../student.service';
-import { StudentResponse, StudentFilter, UpdateStudentRequest } from '../student.models';
-import { FormsModule } from '@angular/forms';
-import { ReactiveFormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
+
+import { StudentService } from '../student.service';
+import {
+  StudentResponse,
+  StudentFilter,
+  UpdateStudentRequest,
+} from '../student.models';
 
 @Component({
   selector: 'app-student-list',
@@ -12,25 +24,29 @@ import { FormGroup, FormControl, Validators } from '@angular/forms';
   imports: [DatePipe, DecimalPipe, FormsModule, ReactiveFormsModule],
   templateUrl: './student-list.html',
   styleUrl: './student-list.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class StudentList implements OnInit {
   private studentService = inject(StudentService);
   private cdr = inject(ChangeDetectorRef);
 
-  students: StudentResponse[] = [];
+  // Signals: student list, loading state, and error state
+  students = signal<StudentResponse[]>([]);
+  isLoading = signal(false);
+  errorMessage = signal('');
 
-  isLoading = false;
-  errorMessage = '';
-
+  // Pagination
   pageNumber = 1;
   pageSize = 5;
   totalRecords = 0;
   totalPages = 0;
 
+  // Student details modal
   selectedStudent: StudentResponse | null = null;
   isDetailsLoading = false;
   detailsError = '';
 
+  // Search and filter values
   filters: StudentFilter = {
     search: '',
     status: null,
@@ -45,30 +61,36 @@ export class StudentList implements OnInit {
     this.loadStudents();
   }
 
+  // Load students from the backend
   loadStudents(): void {
-    this.isLoading = true;
-    this.errorMessage = '';
+    this.isLoading.set(true);
+    this.errorMessage.set('');
 
-    this.studentService.getStudents(this.pageNumber, this.pageSize, this.filters).subscribe({
-      next: (response) => {
-        this.students = response.items;
-        this.totalRecords = response.totalRecords;
-        this.totalPages = response.totalPages;
-        this.pageNumber = response.pageNumber;
-        this.pageSize = response.pageSize;
-        this.isLoading = false;
-        this.cdr.markForCheck();
-      },
+    this.studentService
+      .getStudents(this.pageNumber, this.pageSize, this.filters)
+      .subscribe({
+        next: (response) => {
+          this.students.set(response.items);
+          this.totalRecords = response.totalRecords;
+          this.totalPages = response.totalPages;
+          this.pageNumber = response.pageNumber;
+          this.pageSize = response.pageSize;
 
-      error: (error) => {
-        console.error('Failed to load students:', error);
-        this.errorMessage = 'Unable to load students.';
-        this.isLoading = false;
-        this.cdr.markForCheck();
-      },
-    });
+          this.isLoading.set(false);
+          this.cdr.markForCheck();
+        },
+
+        error: (error) => {
+          console.error('Failed to load students:', error);
+
+          this.errorMessage.set('Unable to load students.');
+          this.isLoading.set(false);
+          this.cdr.markForCheck();
+        },
+      });
   }
 
+  // Approve a student
   approveStudent(id: number): void {
     if (!confirm('Are you sure you want to approve this student?')) {
       return;
@@ -86,6 +108,7 @@ export class StudentList implements OnInit {
     });
   }
 
+  // Reject a student
   rejectStudent(id: number): void {
     if (!confirm('Are you sure you want to reject this student?')) {
       return;
@@ -103,6 +126,7 @@ export class StudentList implements OnInit {
     });
   }
 
+  // Go to previous page
   goToPreviousPage(): void {
     if (this.pageNumber > 1) {
       this.pageNumber--;
@@ -110,6 +134,7 @@ export class StudentList implements OnInit {
     }
   }
 
+  // Go to next page
   goToNextPage(): void {
     if (this.pageNumber < this.totalPages) {
       this.pageNumber++;
@@ -117,17 +142,20 @@ export class StudentList implements OnInit {
     }
   }
 
+  // Change number of students displayed per page
   changePageSize(size: string): void {
     this.pageSize = Number(size);
     this.pageNumber = 1;
     this.loadStudents();
   }
 
+  // Apply search and filters
   applyFilters(): void {
     this.pageNumber = 1;
     this.loadStudents();
   }
 
+  // Clear all filters
   clearFilters(): void {
     this.filters = {
       search: '',
@@ -143,6 +171,7 @@ export class StudentList implements OnInit {
     this.loadStudents();
   }
 
+  // View student details
   viewStudent(id: number): void {
     this.selectedStudent = null;
     this.isDetailsLoading = true;
@@ -163,21 +192,27 @@ export class StudentList implements OnInit {
     });
   }
 
+  // Edit student modal
   isEditModalOpen = false;
   editingStudentId: number | null = null;
 
   studentForm = new FormGroup({
     name: new FormControl('', Validators.required),
-
     email: new FormControl('', [Validators.required, Validators.email]),
-
     department: new FormControl('', Validators.required),
-
-    age: new FormControl(18, [Validators.required, Validators.min(17), Validators.max(60)]),
-
-    cgpa: new FormControl(0, [Validators.required, Validators.min(0), Validators.max(10)]),
+    age: new FormControl(18, [
+      Validators.required,
+      Validators.min(17),
+      Validators.max(60),
+    ]),
+    cgpa: new FormControl(0, [
+      Validators.required,
+      Validators.min(0),
+      Validators.max(10),
+    ]),
   });
 
+  // Load student details into the edit form
   editStudent(id: number): void {
     this.editingStudentId = id;
     this.isEditModalOpen = true;
@@ -191,6 +226,8 @@ export class StudentList implements OnInit {
           age: student.age,
           cgpa: student.cgpa,
         });
+
+        this.cdr.markForCheck();
       },
       error: (error) => {
         console.error('Failed to load student details', error);
@@ -198,9 +235,11 @@ export class StudentList implements OnInit {
     });
   }
 
+  // Close edit modal and reset form
   closeEditModal(): void {
     this.isEditModalOpen = false;
     this.editingStudentId = null;
+
     this.studentForm.reset({
       name: '',
       email: '',
@@ -210,6 +249,7 @@ export class StudentList implements OnInit {
     });
   }
 
+  // Update student
   updateStudent(): void {
     if (this.studentForm.invalid || this.editingStudentId === null) {
       return;
@@ -225,19 +265,22 @@ export class StudentList implements OnInit {
       cgpa: formValue.cgpa!,
     };
 
-    this.studentService.updateStudent(this.editingStudentId, studentData).subscribe({
-      next: (updatedStudent) => {
-        console.log('Student updated:', updatedStudent);
+    this.studentService
+      .updateStudent(this.editingStudentId, studentData)
+      .subscribe({
+        next: (updatedStudent) => {
+          console.log('Student updated:', updatedStudent);
 
-        this.closeEditModal();
-        this.loadStudents();
-      },
-      error: (error) => {
-        console.error('Failed to update student:', error);
-      },
-    });
+          this.closeEditModal();
+          this.loadStudents();
+        },
+        error: (error) => {
+          console.error('Failed to update student:', error);
+        },
+      });
   }
 
+  // Delete student
   deleteStudent(id: number): void {
     if (!confirm('Are you sure you want to delete this student?')) {
       return;

@@ -10,3 +10,9 @@
 
 # Environment
 **/.env
+# Backup and archive files
+*.zip
+*.backup
+
+# Local configuration and secrets
+**/appsettings.Development.json
