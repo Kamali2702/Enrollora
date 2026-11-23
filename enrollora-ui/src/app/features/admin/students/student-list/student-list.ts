@@ -1,4 +1,4 @@
-
+﻿
 import {
   Component,
   inject,
@@ -16,6 +16,7 @@ import {
   StudentResponse,
   StudentFilter,
   UpdateStudentRequest,
+  CreateStudentRequest,
 } from '../student.models';
 
 @Component({
@@ -192,6 +193,93 @@ export class StudentList implements OnInit {
     });
   }
 
+  // Add student modal
+  isAddModalOpen = false;
+  showCreateStudentPassword = false;
+  isCreatingStudent = false;
+  createStudentError = '';
+
+  createStudentForm = new FormGroup({
+    name: new FormControl('', Validators.required),
+    email: new FormControl('', [Validators.required, Validators.email]),
+    password: new FormControl('', [
+      Validators.required,
+      Validators.minLength(8),
+    ]),
+    department: new FormControl('', Validators.required),
+    age: new FormControl(18, [
+      Validators.required,
+      Validators.min(17),
+      Validators.max(60),
+    ]),
+    cgpa: new FormControl(0, [
+      Validators.required,
+      Validators.min(0),
+      Validators.max(10),
+    ]),
+  });
+
+  openAddStudentModal(): void {
+    this.createStudentError = '';
+    this.isAddModalOpen = true;
+  }
+
+  closeAddStudentModal(): void {
+    this.isAddModalOpen = false;
+    this.isCreatingStudent = false;
+    this.createStudentError = '';
+
+    this.createStudentForm.reset({
+      name: '',
+      email: '',
+      password: '',
+      department: '',
+      age: 18,
+      cgpa: 0,
+    });
+  }
+
+  createStudent(): void {
+    if (this.createStudentForm.invalid || this.isCreatingStudent) {
+      this.createStudentForm.markAllAsTouched();
+      return;
+    }
+
+    const formValue = this.createStudentForm.getRawValue();
+
+    const studentData: CreateStudentRequest = {
+      name: formValue.name!.trim(),
+      email: formValue.email!.trim(),
+      password: formValue.password!,
+      department: formValue.department!.trim(),
+      age: formValue.age!,
+      cgpa: formValue.cgpa!,
+    };
+
+    this.isCreatingStudent = true;
+    this.createStudentError = '';
+
+    this.studentService.createStudent(studentData).subscribe({
+      next: (student) => {
+        this.isCreatingStudent = false;
+        alert(`${student.name} added successfully. Status: Approved.`);
+        this.closeAddStudentModal();
+        this.pageNumber = 1;
+        this.loadStudents();
+      },
+      error: (error) => {
+        console.error('Failed to add student:', error);
+
+        this.isCreatingStudent = false;
+        this.createStudentError =
+          error.error?.message ??
+          error.error?.title ??
+          'Unable to add student. Please check the details and email address.';
+
+        this.cdr.markForCheck();
+      },
+    });
+  }
   // Edit student modal
   isEditModalOpen = false;
   editingStudentId: number | null = null;
@@ -296,3 +384,7 @@ export class StudentList implements OnInit {
     });
   }
 }
+
+
+
+

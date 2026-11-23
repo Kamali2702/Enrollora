@@ -1,11 +1,17 @@
-<div class="students-page">
+﻿<div class="students-page">
   <div class="page-heading">
     <div>
       <h2>Students</h2>
       <p>Manage student registrations and approvals.</p>
     </div>
 
-    <div class="student-count">Total Students: {{ totalRecords }}</div>
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      <div class="student-count">Total Students: {{ totalRecords }}</div>
+
+      <button class="btn btn-primary" (click)="openAddStudentModal()">
+        + Add Student
+      </button>
+    </div>
   </div>
 
   @if (isLoading()) {
@@ -27,7 +33,7 @@
             <h5>Filter Students</h5>
             <p>Find students using search and filter criteria</p>
           </div>
-          <span class="filter-icon">☷</span>
+          <span class="filter-icon">▼</span>
         </div>
 
         <div class="row g-3">
@@ -457,3 +463,95 @@
     </div>
   </div>
 }
+
+<!-- Add Student Modal -->
+@if (isAddModalOpen) {
+  <div class="student-modal-backdrop">
+    <div class="student-modal">
+      <div class="student-modal-header">
+        <div>
+          <span class="modal-eyebrow">STUDENT MANAGEMENT</span>
+          <h3>Add Student</h3>
+          <p>Create a new approved student account</p>
+        </div>
+
+        <button type="button" class="modal-close"
+          (click)="closeAddStudentModal()">
+          &times;
+        </button>
+      </div>
+
+      <div class="student-modal-body">
+        @if (createStudentError) {
+          <div class="alert alert-danger">
+            {{ createStudentError }}
+          </div>
+        }
+
+        <form [formGroup]="createStudentForm" (ngSubmit)="createStudent()">
+          <div class="mb-3">
+            <label class="form-label">Student Name</label>
+            <input type="text" class="form-control"
+              formControlName="name" placeholder="Enter student name" />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control"
+              formControlName="email" placeholder="Enter email address" />
+          </div>
+
+          <div class="mb-3">
+  <label class="form-label">Password</label>
+  <div class="input-group">
+    <input [type]="showCreateStudentPassword ? 'text' : 'password'"
+      class="form-control"
+      formControlName="password"
+      placeholder="Minimum 8 characters" />
+    <button type="button" class="btn btn-outline-secondary"
+      (click)="showCreateStudentPassword = !showCreateStudentPassword">
+      {{ showCreateStudentPassword ? 'Hide' : 'Show' }}
+    </button>
+  </div>
+</div>
+
+          <div class="mb-3">
+            <label class="form-label">Department</label>
+            <input type="text" class="form-control"
+              formControlName="department" placeholder="Enter department" />
+          </div>
+
+          <div class="row">
+            <div class="col-6 mb-3">
+              <label class="form-label">Age</label>
+              <input type="number" class="form-control"
+                formControlName="age" min="17" max="60" />
+            </div>
+
+            <div class="col-6 mb-3">
+              <label class="form-label">CGPA</label>
+              <input type="number" class="form-control"
+                formControlName="cgpa" min="0" max="10" step="0.01" />
+            </div>
+          </div>
+
+          <div class="student-modal-footer">
+            <button type="button" class="btn btn-light"
+              (click)="closeAddStudentModal()"
+              [disabled]="isCreatingStudent">
+              Cancel
+            </button>
+
+            <button type="submit" class="btn-close-modal"
+              [disabled]="createStudentForm.invalid || isCreatingStudent">
+              {{ isCreatingStudent ? 'Adding...' : 'Add Student' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}
+
+
+

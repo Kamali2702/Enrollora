@@ -1,10 +1,10 @@
-import { Injectable, inject } from '@angular/core';
+﻿import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
 
-import { StudentFilter, StudentResponse } from './student.models';
+import { StudentFilter, StudentResponse, CreateStudentRequest } from './student.models';
 import { PagedResult } from '../../../shared/models/paged-result.model';
 import { ApiMessage } from '../../../core/auth/auth.models';
 import { UpdateStudentRequest } from './student.models';
@@ -17,6 +17,9 @@ export class StudentService {
 
   private apiUrl = `${environment.apiUrl}/students`;
 
+  createStudent(studentData: CreateStudentRequest): Observable<StudentResponse> {
+    return this.http.post<StudentResponse>(this.apiUrl, studentData);
+  }
   getStudents(
     pageNumber = 1,
     pageSize = 10,
@@ -68,3 +71,4 @@ export class StudentService {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 }
+

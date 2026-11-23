@@ -1,4 +1,4 @@
-export interface StudentResponse {
+﻿export interface StudentResponse {
   studentId: number;
   name: string;
   email: string;
@@ -23,6 +23,16 @@ export interface StudentFilter {
 export interface UpdateStudentRequest {
   name: string;
   email: string;
+  department: string;
+  age: number;
+  cgpa: number;
+}
+
+
+export interface CreateStudentRequest {
+  name: string;
+  email: string;
+  password: string;
   department: string;
   age: number;
   cgpa: number;

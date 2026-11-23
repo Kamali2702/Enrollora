@@ -1,13 +1,17 @@
-using Enrollora.Api.DTOs;
+﻿using Enrollora.Api.DTOs;
 using Enrollora.Api.Models;
 using Enrollora.Api.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace Enrollora.Api.Services;
 
-public sealed class StudentService(IRepository<Student> students) : IStudentService
+public sealed class StudentService(
+    IRepository<Student> students,
+    IRepository<AdminUser> admins,
+    IPasswordHasher hasher) : IStudentService
 {
-    public async Task<PagedResult<StudentResponse>> GetStudentsAsync(StudentQuery query, CancellationToken ct)
+    public async Task<PagedResult<StudentResponse>> GetStudentsAsync(
+        StudentQuery query, CancellationToken ct)
     {
         query.Normalize();
         var q = students.Query();
@@ -18,13 +22,23 @@ public sealed class StudentService(IRepository<Student> students) : IStudentServ
             q = q.Where(x => x.Name.Contains(term) || x.Email.Contains(term));
         }
 
-        if (query.Status.HasValue) q = q.Where(x => x.Status == query.Status);
+        if (query.Status.HasValue)
+            q = q.Where(x => x.Status == query.Status);
+
         if (!string.IsNullOrWhiteSpace(query.Department))
             q = q.Where(x => x.Department == query.Department);
-        if (query.MinAge.HasValue) q = q.Where(x => x.Age >= query.MinAge);
-        if (query.MaxAge.HasValue) q = q.Where(x => x.Age <= query.MaxAge);
-        if (query.MinCgpa.HasValue) q = q.Where(x => x.CGPA >= query.MinCgpa);
-        if (query.MaxCgpa.HasValue) q = q.Where(x => x.CGPA <= query.MaxCgpa);
+
+        if (query.MinAge.HasValue)
+            q = q.Where(x => x.Age >= query.MinAge);
+
+        if (query.MaxAge.HasValue)
+            q = q.Where(x => x.Age <= query.MaxAge);
+
+        if (query.MinCgpa.HasValue)
+            q = q.Where(x => x.CGPA >= query.MinCgpa);
+
+        if (query.MaxCgpa.HasValue)
+            q = q.Where(x => x.CGPA <= query.MaxCgpa);
 
         q = (query.SortBy?.ToLowerInvariant(), query.SortOrder) switch
         {
@@ -40,9 +54,46 @@ public sealed class StudentService(IRepository<Student> students) : IStudentServ
         };
 
         var page = await QueryHelpers.ToPagedResultAsync(q, query, ct);
+
         return new PagedResult<StudentResponse>(
-            page.Items.Select(Map).ToList(), page.PageNumber, page.PageSize,
-            page.TotalRecords, page.TotalPages);
+            page.Items.Select(Map).ToList(),
+            page.PageNumber,
+            page.PageSize,
+            page.TotalRecords,
+            page.TotalPages);
+    }
+
+    public async Task<StudentResponse> CreateAsync(
+        CreateStudentRequest request, CancellationToken ct)
+    {
+        var email = request.Email.Trim().ToLowerInvariant();
+
+        if (await students.Query().AnyAsync(x => x.Email == email, ct) ||
+            await admins.Query().AnyAsync(x => x.Email == email, ct))
+        {
+            throw new InvalidOperationException(
+                "An account with this email already exists.");
+        }
+
+        var now = DateTime.UtcNow;
+
+        var student = new Student
+        {
+            Name = request.Name.Trim(),
+            Email = email,
+            PasswordHash = hasher.Hash(request.Password),
+            Department = request.Department.Trim(),
+            Age = request.Age,
+            CGPA = request.CGPA,
+            Status = StudentStatus.Approved,
+            RegisteredAt = now,
+            ReviewedAt = now
+        };
+
+        await students.AddAsync(student, ct);
+        await students.SaveChangesAsync(ct);
+
+        return Map(student);
     }
 
     public async Task<StudentResponse> GetByIdAsync(int id, CancellationToken ct) =>
@@ -59,12 +110,15 @@ public sealed class StudentService(IRepository<Student> students) : IStudentServ
         int id, UpdateStudentRequest request, CancellationToken ct)
     {
         var student = await FindAsync(id, ct);
+
         student.Name = request.Name.Trim();
         student.Department = request.Department.Trim();
         student.Age = request.Age;
         student.CGPA = request.CGPA;
+
         students.Update(student);
         await students.SaveChangesAsync(ct);
+
         return Map(student);
     }
 
@@ -74,11 +128,14 @@ public sealed class StudentService(IRepository<Student> students) : IStudentServ
             throw new ArgumentException("Review status must be Approved or Rejected.");
 
         var student = await FindAsync(id, ct);
+
         if (student.Status != StudentStatus.Pending)
-            throw new InvalidOperationException("Only pending registrations can be reviewed.");
+            throw new InvalidOperationException(
+                "Only pending registrations can be reviewed.");
 
         student.Status = status;
         student.ReviewedAt = DateTime.UtcNow;
+
         students.Update(student);
         await students.SaveChangesAsync(ct);
     }
@@ -86,19 +143,34 @@ public sealed class StudentService(IRepository<Student> students) : IStudentServ
     public async Task DeleteAsync(int id, CancellationToken ct)
     {
         var student = await FindAsync(id, ct);
-        if (await students.Query().Where(x => x.StudentId == id)
-            .SelectMany(x => x.Enrollments).AnyAsync(ct))
-            throw new InvalidOperationException("Student has enrollment history and cannot be deleted.");
+
+        if (await students.Query()
+            .Where(x => x.StudentId == id)
+            .SelectMany(x => x.Enrollments)
+            .AnyAsync(ct))
+        {
+            throw new InvalidOperationException(
+                "Student has enrollment history and cannot be deleted.");
+        }
 
         students.Remove(student);
         await students.SaveChangesAsync(ct);
     }
 
     private async Task<Student> FindAsync(int id, CancellationToken ct) =>
-        await students.Query(true).FirstOrDefaultAsync(x => x.StudentId == id, ct)
+        await students.Query(true)
+            .FirstOrDefaultAsync(x => x.StudentId == id, ct)
         ?? throw new KeyNotFoundException("Student was not found.");
 
     private static StudentResponse Map(Student x) =>
-        new(x.StudentId, x.Name, x.Email, x.Department, x.Age, x.CGPA,
-            x.Status, x.RegisteredAt, x.ReviewedAt);
+        new(
+            x.StudentId,
+            x.Name,
+            x.Email,
+            x.Department,
+            x.Age,
+            x.CGPA,
+            x.Status,
+            x.RegisteredAt,
+            x.ReviewedAt);
 }
