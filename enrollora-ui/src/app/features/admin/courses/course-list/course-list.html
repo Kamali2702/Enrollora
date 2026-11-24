@@ -94,6 +94,7 @@
               <th>ENROLLMENT</th>
               <th>AVAILABLE SEATS</th>
               <th>STATUS</th>
+              <th>ACTIONS</th>
             </tr>
           </thead>
 
@@ -156,6 +157,16 @@
                     {{ course.isActive ? 'Active' : 'Inactive' }}
                   </span>
                 </td>
+
+                <td>
+                  <button
+                    type="button"
+                    class="page-btn"
+                    (click)="openEditCourse(course)"
+                  >
+                    Edit
+                  </button>
+                </td>
               </tr>
             }
           </tbody>
@@ -185,4 +196,115 @@
       </div>
     }
   </div>
+
+  @if (isEditModalOpen()) {
+    <div
+      role="presentation"
+      (click)="closeEditCourse()"
+      style="position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; padding: 20px; overflow-y: auto;"
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-course-title"
+        (click)="$event.stopPropagation()"
+        style="background: white; color: #222; width: 100%; max-width: 520px; border-radius: 12px; padding: 24px; box-shadow: 0 12px 40px rgba(0,0,0,0.2); margin: auto;"
+      >
+        <h2 id="edit-course-title">Edit Course</h2>
+        <p>Update the course information below.</p>
+
+        @if (isLoadingCourse()) {
+          <p>Loading course details...</p>
+        } @else {
+          <form [formGroup]="editCourseForm" (ngSubmit)="saveCourse()">
+            <div style="display: grid; gap: 14px;">
+
+              <label>
+                Course Name
+                <input
+                  type="text"
+                  formControlName="courseName"
+                  maxlength="150"
+                  style="display: block; width: 100%; box-sizing: border-box; padding: 10px; margin-top: 5px;"
+                />
+              </label>
+              @if (editCourseForm.controls.courseName.touched && editCourseForm.controls.courseName.invalid) {
+                <small style="color: #c62828;">Course name is required (maximum 150 characters).</small>
+              }
+
+              <label>
+                Duration
+                <input
+                  type="text"
+                  formControlName="duration"
+                  maxlength="50"
+                  style="display: block; width: 100%; box-sizing: border-box; padding: 10px; margin-top: 5px;"
+                />
+              </label>
+              @if (editCourseForm.controls.duration.touched && editCourseForm.controls.duration.invalid) {
+                <small style="color: #c62828;">Duration is required (maximum 50 characters).</small>
+              }
+
+              <label>
+                Fees
+                <input
+                  type="number"
+                  formControlName="fees"
+                  min="0"
+                  step="0.01"
+                  style="display: block; width: 100%; box-sizing: border-box; padding: 10px; margin-top: 5px;"
+                />
+              </label>
+              @if (editCourseForm.controls.fees.touched && editCourseForm.controls.fees.invalid) {
+                <small style="color: #c62828;">Fees must be zero or greater.</small>
+              }
+
+              <label>
+                Capacity
+                <input
+                  type="number"
+                  formControlName="capacity"
+                  min="1"
+                  step="1"
+                  style="display: block; width: 100%; box-sizing: border-box; padding: 10px; margin-top: 5px;"
+                />
+              </label>
+              @if (editCourseForm.controls.capacity.touched && editCourseForm.controls.capacity.invalid) {
+                <small style="color: #c62828;">Capacity must be at least 1.</small>
+              }
+
+              <label style="display: flex; align-items: center; gap: 9px;">
+                <input type="checkbox" formControlName="isActive" />
+                Active Course
+              </label>
+
+            </div>
+
+            @if (editError()) {
+              <p style="color: #c62828; margin-top: 14px;">{{ editError() }}</p>
+            }
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+              <button
+                type="button"
+                class="page-btn"
+                (click)="closeEditCourse()"
+                [disabled]="isSavingCourse()"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"
+                class="btn-add"
+                [disabled]="editCourseForm.invalid || isSavingCourse()"
+              >
+                {{ isSavingCourse() ? 'Saving...' : 'Save Changes' }}
+              </button>
+            </div>
+          </form>
+        }
+      </section>
+    </div>
+  }
 </div>

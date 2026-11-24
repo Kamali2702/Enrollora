@@ -209,3 +209,13 @@ Enum query values can be supplied by name, for example `Pending`, `Approved`, `R
 - Supports the same search, status, department, age, and CGPA filters as the student list.
 - Downloads a CSV file that can be opened in Microsoft Excel.
 - Columns: Student ID, Name, Email, Department, Age, CGPA, Status, Registered Date, and Reviewed Date.
+
+### Edit course details
+
+**Endpoint:** `PUT /api/courses/{id}`
+
+- Administrator-only endpoint.
+- Updates an existing course using its course ID.
+- Accepts course name, duration, fees, capacity, and active status.
+- Returns the updated course details.
+- Existing enrollment history is preserved.
