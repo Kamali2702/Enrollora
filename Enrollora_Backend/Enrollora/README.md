@@ -199,3 +199,13 @@ Enum query values can be supplied by name, for example `Pending`, `Approved`, `R
 - Configure HTTPS and production logging.
 - Add automated integration tests, especially for concurrent enrollment and cancellation review.
 - Consider email verification and account recovery if required by the deployment.
+
+### Export student records
+
+**Endpoint:** `GET /api/students/export`
+
+- Administrator-only endpoint.
+- Exports all matching student records, not just the current page.
+- Supports the same search, status, department, age, and CGPA filters as the student list.
+- Downloads a CSV file that can be opened in Microsoft Excel.
+- Columns: Student ID, Name, Email, Department, Age, CGPA, Status, Registered Date, and Reviewed Date.

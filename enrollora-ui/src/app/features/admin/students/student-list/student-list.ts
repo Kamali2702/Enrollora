@@ -383,8 +383,44 @@ export class StudentList implements OnInit {
       },
     });
   }
+
+  // Export all students matching the current filters
+  isExporting = false;
+
+  exportStudents(): void {
+    if (this.isExporting) {
+      return;
+    }
+
+    this.isExporting = true;
+    this.cdr.markForCheck();
+
+    this.studentService.exportStudents(this.filters).subscribe({
+      next: (file) => {
+        const url = window.URL.createObjectURL(file);
+        const link = document.createElement('a');
+
+        link.href = url;
+        link.download = `students-${new Date().toISOString().slice(0, 10)}.csv`;
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        window.URL.revokeObjectURL(url);
+
+        this.isExporting = false;
+        this.cdr.markForCheck();
+      },
+      error: (error) => {
+        console.error('Failed to export students:', error);
+
+        this.isExporting = false;
+        this.cdr.markForCheck();
+
+        alert('Unable to export student records. Please try again.');
+      },
+    });
+  }
 }
-
-
-
 

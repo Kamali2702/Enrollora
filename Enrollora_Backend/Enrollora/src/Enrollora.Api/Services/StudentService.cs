@@ -1,4 +1,4 @@
-﻿using Enrollora.Api.DTOs;
+using Enrollora.Api.DTOs;
 using Enrollora.Api.Models;
 using Enrollora.Api.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +13,30 @@ public sealed class StudentService(
     public async Task<PagedResult<StudentResponse>> GetStudentsAsync(
         StudentQuery query, CancellationToken ct)
     {
+        var q = BuildStudentQuery(query);
+
+        var page = await QueryHelpers.ToPagedResultAsync(q, query, ct);
+
+        return new PagedResult<StudentResponse>(
+            page.Items.Select(Map).ToList(),
+            page.PageNumber,
+            page.PageSize,
+            page.TotalRecords,
+            page.TotalPages);
+    }
+
+    public async Task<IReadOnlyList<StudentResponse>> GetStudentsForExportAsync(
+        StudentQuery query, CancellationToken ct)
+    {
+        var matchingStudents = await BuildStudentQuery(query).ToListAsync(ct);
+
+        return matchingStudents.Select(Map).ToList();
+    }
+
+    private IQueryable<Student> BuildStudentQuery(StudentQuery query)
+    {
         query.Normalize();
+
         var q = students.Query();
 
         if (!string.IsNullOrWhiteSpace(query.Search))
@@ -53,14 +76,7 @@ public sealed class StudentService(
             _ => q.OrderByDescending(x => x.RegisteredAt)
         };
 
-        var page = await QueryHelpers.ToPagedResultAsync(q, query, ct);
-
-        return new PagedResult<StudentResponse>(
-            page.Items.Select(Map).ToList(),
-            page.PageNumber,
-            page.PageSize,
-            page.TotalRecords,
-            page.TotalPages);
+        return q;
     }
 
     public async Task<StudentResponse> CreateAsync(

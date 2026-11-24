@@ -1,4 +1,4 @@
-﻿using Enrollora.Api.DTOs;
+using Enrollora.Api.DTOs;
 using Enrollora.Api.Models;
 
 namespace Enrollora.Api.Services;
@@ -23,6 +23,7 @@ public interface IAuthService
 public interface IStudentService
 {
     Task<PagedResult<StudentResponse>> GetStudentsAsync(StudentQuery query, CancellationToken ct);
+    Task<IReadOnlyList<StudentResponse>> GetStudentsForExportAsync(StudentQuery query, CancellationToken ct);
     Task<StudentResponse> GetByIdAsync(int id, CancellationToken ct);
     Task<StudentResponse> CreateAsync(CreateStudentRequest request, CancellationToken ct);
     Task<StudentResponse> GetMeAsync(int studentId, CancellationToken ct);
@@ -62,4 +63,5 @@ public interface IDashboardService
 {
     Task<DashboardSummary> GetSummaryAsync(CancellationToken ct);
 }
+
 

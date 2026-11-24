@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Enrollora.Api.DTOs;
 using Enrollora.Api.Models;
 using Enrollora.Api.Services;
@@ -18,6 +18,45 @@ public sealed class StudentsController(IStudentService service) : ControllerBase
         [FromQuery] StudentQuery query, CancellationToken ct) =>
         service.GetStudentsAsync(query, ct);
 
+    [HttpGet("export")]
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> Export(
+        [FromQuery] StudentQuery query, CancellationToken ct)
+    {
+        var students = await service.GetStudentsForExportAsync(query, ct);
+
+        var csv = new System.Text.StringBuilder();
+
+        csv.AppendLine(
+            "Student ID,Name,Email,Department,Age,CGPA,Status,Registered Date,Reviewed Date");
+
+        foreach (var student in students)
+        {
+            var values = new[]
+            {
+                student.StudentId.ToString(),
+                student.Name,
+                student.Email,
+                student.Department,
+                student.Age.ToString(),
+                student.CGPA.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                student.Status.ToString(),
+                student.RegisteredAt.ToString("O"),
+                student.ReviewedAt?.ToString("O") ?? string.Empty
+            };
+
+            csv.AppendLine(string.Join(",",
+                values.Select(value =>
+                    "\"" + value.Replace("\"", "\"\"") + "\"")));
+        }
+
+        var bytes = new System.Text.UTF8Encoding(true).GetBytes(csv.ToString());
+
+        return File(
+            bytes,
+            "text/csv; charset=utf-8",
+            $"students-{DateTime.UtcNow:yyyyMMdd-HHmmss}.csv");
+    }
     [HttpGet("{id:int}")]
     [Authorize(Roles = "Administrator")]
     public Task<StudentResponse> GetById(int id, CancellationToken ct) =>
@@ -82,3 +121,4 @@ public sealed class StudentsController(IStudentService service) : ControllerBase
             ?? throw new UnauthorizedAccessException(
                 "Student identity is missing."));
 }
+

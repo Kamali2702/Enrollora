@@ -20,6 +20,7 @@ export class StudentService {
   createStudent(studentData: CreateStudentRequest): Observable<StudentResponse> {
     return this.http.post<StudentResponse>(this.apiUrl, studentData);
   }
+
   getStudents(
     pageNumber = 1,
     pageSize = 10,
@@ -51,6 +52,36 @@ export class StudentService {
     return this.http.get<PagedResult<StudentResponse>>(this.apiUrl, { params });
   }
 
+  exportStudents(filters?: StudentFilter): Observable<Blob> {
+    let params = new HttpParams();
+
+    if (filters) {
+      if (filters.search) params = params.set('search', filters.search);
+
+      if (filters.status !== null && filters.status !== undefined)
+        params = params.set('status', filters.status);
+
+      if (filters.department) params = params.set('department', filters.department);
+
+      if (filters.minAge !== null && filters.minAge !== undefined)
+        params = params.set('minAge', filters.minAge);
+
+      if (filters.maxAge !== null && filters.maxAge !== undefined)
+        params = params.set('maxAge', filters.maxAge);
+
+      if (filters.minCgpa !== null && filters.minCgpa !== undefined)
+        params = params.set('minCgpa', filters.minCgpa);
+
+      if (filters.maxCgpa !== null && filters.maxCgpa !== undefined)
+        params = params.set('maxCgpa', filters.maxCgpa);
+    }
+
+    return this.http.get(`${this.apiUrl}/export`, {
+      params,
+      responseType: 'blob',
+    });
+  }
+
   getStudentById(id: number): Observable<StudentResponse> {
     return this.http.get<StudentResponse>(`${this.apiUrl}/${id}`);
   }
@@ -71,4 +102,3 @@ export class StudentService {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 }
-
