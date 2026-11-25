@@ -7,6 +7,17 @@
     </div>
   </div>
 
+  <div class="course-search">
+    <input
+      type="text"
+      placeholder="Search courses by name..."
+      [value]="searchText()"
+      (input)="onSearchInput($event)"
+      (keyup.enter)="searchCourses()"
+    />
+    <button class="search-btn" (click)="searchCourses()">Search</button>
+    <button class="clear-btn" (click)="clearSearch()">Clear</button>
+  </div>
   @if (successMessage()) {
     <div class="alert success-alert">
       <span>✓</span>

@@ -1,3 +1,12 @@
+﻿export interface RecentStudentRegistration {
+  studentId: number;
+  name: string;
+  email: string;
+  department: string;
+  status: string;
+  registeredAt: string;
+}
+
 export interface DashboardSummary {
   totalStudents: number;
   pendingApprovals: number;
@@ -10,5 +19,5 @@ export interface DashboardSummary {
   pendingCancellationRequests: number;
   averageCgpa: number;
   totalAvailableSeats: number;
+  recentStudentRegistrations: RecentStudentRegistration[];
 }
-

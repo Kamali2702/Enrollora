@@ -550,3 +550,88 @@
     width: 100%;
   }
 }
+
+/* Course Details Modal */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(35, 25, 60, 0.48);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+}
+
+.modal-content {
+  width: 100%;
+  max-width: 520px;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: #ffffff;
+  padding: 28px;
+  border-radius: 16px;
+  border: 1px solid #efedf4;
+  box-shadow: 0 15px 45px rgba(35, 25, 60, 0.18);
+  color: #29243b;
+}
+
+.modal-content h2 {
+  margin: 0 0 22px;
+  color: #302942;
+  font-size: 21px;
+  font-weight: 800;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f0edf5;
+}
+
+.course-details {
+  display: grid;
+  gap: 0;
+}
+
+.course-details p {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  margin: 0;
+  padding: 13px 0;
+  border-bottom: 1px solid #f2f0f5;
+  color: #625b70;
+  font-size: 13px;
+}
+
+.course-details strong {
+  color: #342c47;
+  font-weight: 750;
+}
+
+.modal-content .error-message {
+  color: #c24141;
+  font-size: 13px;
+}
+
+.modal-content .page-btn {
+  padding: 10px 20px;
+  background: #f3edff;
+  border-color: #e9ddff;
+  color: #8050d8;
+}
+
+.modal-content .page-btn:hover {
+  background: #e9ddff;
+}
+
+@media (max-width: 600px) {
+  .modal-content {
+    padding: 20px;
+  }
+
+  .course-details p {
+    flex-direction: column;
+    gap: 5px;
+  }
+}
+

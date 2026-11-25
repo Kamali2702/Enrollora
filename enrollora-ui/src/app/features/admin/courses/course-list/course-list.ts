@@ -1,4 +1,5 @@
-﻿import { Component, OnInit, inject, signal } from '@angular/core';
+﻿
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormControl,
@@ -29,6 +30,7 @@ export class CourseListComponent implements OnInit {
   // Search
   searchText = signal('');
   private appliedSearch = signal('');
+  courseStatusFilter = signal<'all' | 'active' | 'inactive'>('all');
 
   // Pagination
   pageNumber = signal(1);
@@ -37,7 +39,7 @@ export class CourseListComponent implements OnInit {
   totalRecords = signal(0);
   totalPages = signal(0);
 
-  // Edit course
+  // Add and Edit course modal
   isEditModalOpen = signal(false);
   isLoadingCourse = signal(false);
   isSavingCourse = signal(false);
@@ -89,13 +91,28 @@ export class CourseListComponent implements OnInit {
     this.loadCourses();
   }
 
+  // Apply active/inactive course filter
+  onCourseStatusChange(value: string): void {
+    if (value !== 'all' && value !== 'active' && value !== 'inactive') {
+      return;
+    }
+
+    this.courseStatusFilter.set(value);
+    this.pageNumber.set(1);
+    this.loadCourses();
+  }
   // Load courses from backend
   loadCourses(): void {
     this.isLoading.set(true);
     this.errorMessage.set('');
 
     const search = this.appliedSearch();
-    const filters = search ? { search } : undefined;
+    const status = this.courseStatusFilter();
+
+    const filters = {
+      ...(search ? { search } : {}),
+      ...(status !== 'all' ? { isActive: status === 'active' } : {}),
+    };
 
     this.courseService
       .getCourses(this.pageNumber(), this.pageSize(), filters)
@@ -114,6 +131,23 @@ export class CourseListComponent implements OnInit {
       });
   }
 
+  // Open empty form to add a new course
+  openAddCourse(): void {
+    this.selectedCourseId.set(null);
+    this.isEditModalOpen.set(true);
+    this.isLoadingCourse.set(false);
+    this.isSavingCourse.set(false);
+    this.editError.set('');
+
+    this.editCourseForm.reset({
+      courseName: '',
+      duration: '',
+      fees: 0,
+      capacity: 1,
+      isActive: true,
+    });
+  }
+
   // Open edit form and retrieve complete course details
   openEditCourse(course: CourseResponse): void {
     this.selectedCourseId.set(course.courseId);
@@ -121,6 +155,7 @@ export class CourseListComponent implements OnInit {
     this.isLoadingCourse.set(true);
     this.isSavingCourse.set(false);
     this.editError.set('');
+
     this.editCourseForm.reset({
       courseName: '',
       duration: '',
@@ -148,7 +183,7 @@ export class CourseListComponent implements OnInit {
     });
   }
 
-  // Close edit form
+  // Close Add/Edit form
   closeEditCourse(): void {
     if (this.isSavingCourse()) {
       return;
@@ -160,7 +195,7 @@ export class CourseListComponent implements OnInit {
     this.editCourseForm.reset();
   }
 
-  // Save updated course
+  // Create a new course or update an existing course
   saveCourse(): void {
     if (this.editCourseForm.invalid) {
       this.editCourseForm.markAllAsTouched();
@@ -168,34 +203,112 @@ export class CourseListComponent implements OnInit {
     }
 
     const courseId = this.selectedCourseId();
-
-    if (courseId === null) {
-      this.editError.set('No course selected.');
-      return;
-    }
+    const isCreating = courseId === null;
 
     const request: SaveCourseRequest = this.editCourseForm.getRawValue();
 
     this.isSavingCourse.set(true);
     this.editError.set('');
 
-    this.courseService.updateCourse(courseId, request).subscribe({
+    const saveRequest = isCreating
+      ? this.courseService.createCourse(request)
+      : this.courseService.updateCourse(courseId, request);
+
+    saveRequest.subscribe({
       next: () => {
         this.isSavingCourse.set(false);
         this.isEditModalOpen.set(false);
         this.selectedCourseId.set(null);
+        this.editCourseForm.reset();
+
+        if (isCreating) {
+          this.pageNumber.set(1);
+        }
+
         this.loadCourses();
       },
       error: (error) => {
-        console.error('Error updating course:', error);
-        this.editError.set(
-          error?.error?.message || 'Unable to update course. Please try again.'
+        console.error(
+          isCreating ? 'Error creating course:' : 'Error updating course:',
+          error
         );
+
+        this.editError.set(
+          error?.error?.message ||
+            (isCreating
+              ? 'Unable to create course. Please try again.'
+              : 'Unable to update course. Please try again.')
+        );
+
         this.isSavingCourse.set(false);
       },
     });
   }
 
+  // Deactivate an active course
+  deactivatingCourseId = signal<number | null>(null);
+
+  deactivateCourse(course: CourseResponse): void {
+    if (!course.isActive) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to deactivate "${course.courseName}"?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.deactivatingCourseId.set(course.courseId);
+
+    this.courseService.deactivateCourse(course.courseId).subscribe({
+      next: () => {
+        this.deactivatingCourseId.set(null);
+        this.loadCourses();
+      },
+      error: (error) => {
+        console.error('Error deactivating course:', error);
+
+        this.errorMessage.set(
+          error?.error?.message || 'Unable to deactivate course. Please try again.'
+        );
+
+        this.deactivatingCourseId.set(null);
+      },
+    });
+  }
+  // View complete course details
+  isDetailsModalOpen = signal(false);
+  isLoadingDetails = signal(false);
+  detailsError = signal('');
+  selectedCourseDetails = signal<CourseResponse | null>(null);
+
+  viewCourseDetails(course: CourseResponse): void {
+    this.isDetailsModalOpen.set(true);
+    this.isLoadingDetails.set(true);
+    this.detailsError.set('');
+    this.selectedCourseDetails.set(null);
+
+    this.courseService.getCourseById(course.courseId).subscribe({
+      next: (details) => {
+        this.selectedCourseDetails.set(details);
+        this.isLoadingDetails.set(false);
+      },
+      error: (error) => {
+        console.error('Error loading course details:', error);
+        this.detailsError.set('Unable to load course details. Please try again.');
+        this.isLoadingDetails.set(false);
+      },
+    });
+  }
+
+  closeCourseDetails(): void {
+    this.isDetailsModalOpen.set(false);
+    this.selectedCourseDetails.set(null);
+    this.detailsError.set('');
+  }
   // Navigate to next page
   nextPage(): void {
     if (this.pageNumber() < this.totalPages()) {
@@ -212,3 +325,6 @@ export class CourseListComponent implements OnInit {
     }
   }
 }
+
+
+

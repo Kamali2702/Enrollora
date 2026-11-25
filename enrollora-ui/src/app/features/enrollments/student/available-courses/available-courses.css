@@ -299,3 +299,63 @@
     flex-direction: column;
   }
 }
+/* Student available course search */
+.course-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 22px;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid #efedf4;
+  border-radius: 14px;
+}
+
+.course-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 13px;
+  border: 1px solid #e5e0ed;
+  border-radius: 9px;
+  outline: none;
+  color: #342c47;
+  font-size: 13px;
+}
+
+.course-search input:focus {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.10);
+}
+
+.course-search button {
+  border: none;
+  border-radius: 9px;
+  padding: 11px 18px;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.search-btn {
+  background: #8b5cf6;
+  color: #fff;
+}
+
+.clear-btn {
+  background: #f1edf8;
+  color: #635a75;
+}
+
+@media (max-width: 550px) {
+  .course-search {
+    flex-wrap: wrap;
+  }
+
+  .course-search input {
+    flex-basis: 100%;
+  }
+
+  .course-search button {
+    flex: 1;
+  }
+}

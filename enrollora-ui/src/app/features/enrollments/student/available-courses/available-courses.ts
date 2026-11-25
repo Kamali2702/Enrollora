@@ -29,7 +29,28 @@ export class AvailableCourses implements OnInit {
   totalRecords = signal(0);
   totalPages = signal(0);
 
+  searchText = signal('');
+  appliedSearch = signal('');
+
   ngOnInit(): void {
+    this.loadCourses();
+  }
+
+  onSearchInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.searchText.set(input.value);
+  }
+
+  searchCourses(): void {
+    this.appliedSearch.set(this.searchText().trim());
+    this.pageNumber.set(1);
+    this.loadCourses();
+  }
+
+  clearSearch(): void {
+    this.searchText.set('');
+    this.appliedSearch.set('');
+    this.pageNumber.set(1);
     this.loadCourses();
   }
 
@@ -38,7 +59,10 @@ export class AvailableCourses implements OnInit {
     this.errorMessage.set('');
 
     this.courseService
-      .getCourses(this.pageNumber(), this.pageSize(), { isActive: true })
+      .getCourses(this.pageNumber(), this.pageSize(), {
+        isActive: true,
+        ...(this.appliedSearch() ? { search: this.appliedSearch() } : {}),
+      })
       .subscribe({
         next: (response) => {
           this.courses.set(

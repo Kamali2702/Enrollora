@@ -17,8 +17,10 @@ public sealed class DashboardService(ApplicationDbContext db) : IDashboardServic
         var activeCourses = await db.Courses.CountAsync(x => x.IsActive, ct);
         var activeEnrollments = await db.Enrollments.CountAsync(x => x.Status == EnrollmentStatus.Active, ct);
         var cancelledEnrollments = await db.Enrollments.CountAsync(x => x.Status == EnrollmentStatus.Cancelled, ct);
+
         var pendingRequests = await db.CancellationRequests.CountAsync(
             x => x.Status == CancellationStatus.Pending, ct);
+
         var averageCgpa = totalStudents == 0 ? 0 :
             await db.Students.AverageAsync(x => (decimal?)x.CGPA, ct) ?? 0;
 
@@ -28,14 +30,40 @@ public sealed class DashboardService(ApplicationDbContext db) : IDashboardServic
             .Select(g => new { CourseId = g.Key, Count = g.Count() })
             .ToListAsync(ct);
 
-        var courses = await db.Courses.Where(x => x.IsActive)
-            .Select(x => new { x.CourseId, x.Capacity }).ToListAsync(ct);
+        var courses = await db.Courses
+            .Where(x => x.IsActive)
+            .Select(x => new { x.CourseId, x.Capacity })
+            .ToListAsync(ct);
 
         var available = courses.Sum(c =>
-            Math.Max(0, c.Capacity - (activeCounts.FirstOrDefault(a => a.CourseId == c.CourseId)?.Count ?? 0)));
+            Math.Max(0, c.Capacity -
+                (activeCounts.FirstOrDefault(a => a.CourseId == c.CourseId)?.Count ?? 0)));
 
-        return new DashboardSummary(totalStudents, pending, approved, rejected,
-            totalCourses, activeCourses, activeEnrollments, cancelledEnrollments,
-            pendingRequests, Math.Round(averageCgpa, 2), available);
+        var recentStudents = await db.Students
+            .OrderByDescending(x => x.RegisteredAt)
+            .ThenByDescending(x => x.StudentId)
+            .Take(5)
+            .Select(x => new RecentStudentRegistration(
+                x.StudentId,
+                x.Name,
+                x.Email,
+                x.Department,
+                x.Status.ToString(),
+                x.RegisteredAt))
+            .ToListAsync(ct);
+
+        return new DashboardSummary(
+            totalStudents,
+            pending,
+            approved,
+            rejected,
+            totalCourses,
+            activeCourses,
+            activeEnrollments,
+            cancelledEnrollments,
+            pendingRequests,
+            Math.Round(averageCgpa, 2),
+            available,
+            recentStudents);
     }
 }
